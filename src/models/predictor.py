@@ -325,6 +325,8 @@ class Translator(object):
                     topk_beam_index
                     + beam_offset[:topk_beam_index.size(0)].unsqueeze(1))
             select_indices = batch_index.view(-1)
+            # For some reason select_indices is a tensor of floats, which causes `alive_seq.index_select` to break. We excplicitly cast it to a tensor of Longs:
+            select_indices = select_indices.type(torch.LongTensor).to(device=device)
 
             # Append last prediction.
             alive_seq = torch.cat(
@@ -369,6 +371,7 @@ class Translator(object):
                     .view(-1, alive_seq.size(-1))
             # Reorder states.
             select_indices = batch_index.view(-1)
+            select_indices = select_indices.type(torch.LongTensor).to(device=device)
             src_features = src_features.index_select(0, select_indices)
             dec_states.map_batch_fn(
                 lambda state, dim: state.index_select(dim, select_indices))
