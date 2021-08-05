@@ -1,3 +1,6 @@
+sample-stories*
+*.tgz
+stanford-corenlp-full-2017-06-09
 temp
 output
 data
