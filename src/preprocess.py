@@ -42,7 +42,7 @@ def str2bool(v):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("-pretrained_model", default='bert', type=str)
+    parser.add_argument("-pretrained_model", default='bert-base-uncased', type=str)
 
     parser.add_argument("-mode", default='', type=str)
     parser.add_argument("-select_mode", default='greedy', type=str)
