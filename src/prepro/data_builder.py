@@ -9,6 +9,7 @@ import re
 import subprocess
 from collections import Counter
 from os.path import join as pjoin
+from pathlib import Path
 
 import torch
 from multiprocess import Pool
@@ -295,6 +296,7 @@ class BertData():
 
 
 def format_to_bert(args):
+    Path(args.save_path).mkdir(exist_ok=True, parents=True)
     if (args.dataset != ''):
         datasets = [args.dataset]
     else:
