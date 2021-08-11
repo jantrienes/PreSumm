@@ -289,8 +289,14 @@ class Trainer(object):
                     for batch in test_iter:
                         gold = []
                         pred = []
+                        labels = batch.src_sent_labels
                         if (cal_lead):
                             selected_ids = [list(range(batch.clss.size(1)))] * batch.batch_size
+                        elif (cal_oracle):
+                            selected_ids = [
+                                [j for j in range(batch.clss.size(1)) if labels[i][j] == 1]
+                                for i in range(batch.batch_size)
+                            ]
                         for i, idx in enumerate(selected_ids):
                             _pred = []
                             if(len(batch.src_str[i])==0):
