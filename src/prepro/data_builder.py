@@ -159,6 +159,28 @@ def cal_rouge(evaluated_ngrams, reference_ngrams):
 
 
 def greedy_selection(doc_sent_list, abstract_sent_list, summary_size):
+    """Greedily select sentences in source document that maximize ROUGE score with respect to the target summary. This routine creates ground truth sentence labels for extractive summarization.
+
+    The summary is build up iteratively up to a length of `summary_size`. At each iteration, a sentence is only added if the additon improves the ROUGE score with respect to the target summary.
+
+    References:
+    - Nallapati, R. et al. (2017). SummaRuNNer: A Recurrent Neural Network Based Sequence Model for Extractive Summarization of Documents. AAAI-17.
+    - Liu, Y., & Lapata, M. (2019). Text Summarization with Pretrained Encoders. EMNLP-IJCNLP 2019.
+
+    Parameters
+    ----------
+    doc_sent_list : List[List[str]]
+        Tokenized sentences in source document.
+    abstract_sent_list : List[List[str]]
+        Tokenized sentences in target summary.
+    summary_size : int
+        Maximum number of sentences to select.
+
+    Returns
+    -------
+    List[int]
+        Indexes of the selected sentences in `doc_sent_list`.
+    """
     def _rouge_clean(s):
         return re.sub(r'[^a-zA-Z0-9 ]', '', s)
 
