@@ -332,3 +332,7 @@ def train_abs_single(args, device_id):
     trainer = build_trainer(args, device_id, model, optim, train_loss)
 
     trainer.train(train_iter_fct, args.train_steps)
+    try:
+        trainer.train(train_iter_fct, args.train_steps)
+    finally:
+        trainer.close_writer()
