@@ -166,7 +166,7 @@ class Translator(object):
                     self.can_out_file.write(pred_str + '\n')
                     self.gold_out_file.write(gold_str + '\n')
                     self.src_out_file.write(src.strip() + '\n')
-                    self.id_out_file.write(id_ + '\n')
+                    self.id_out_file.write(f'{id_}\n')
                     ct += 1
                 self.can_out_file.flush()
                 self.gold_out_file.flush()
