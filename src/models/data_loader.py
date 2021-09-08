@@ -258,10 +258,16 @@ class DataIterator(object):
         for buffer in self.batch_buffer(data, self.batch_size * 300):
 
             if (self.args.task == 'abs'):
-                p_batch = sorted(buffer, key=lambda x: len(x[2]))
-                p_batch = sorted(p_batch, key=lambda x: len(x[1]))
+                if self.shuffle:
+                    p_batch = sorted(buffer, key=lambda x: len(x[2]))
+                    p_batch = sorted(p_batch, key=lambda x: len(x[1]))
+                else:
+                    p_batch=buffer
             else:
-                p_batch = sorted(buffer, key=lambda x: len(x[2]))
+                if self.shuffle:
+                    p_batch = sorted(buffer, key=lambda x: len(x[2]))
+                else:
+                    p_batch=buffer
 
             p_batch = self.batch(p_batch, self.batch_size)
 
