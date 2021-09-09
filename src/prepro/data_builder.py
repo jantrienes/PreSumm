@@ -403,7 +403,7 @@ def _format_to_lines(params):
     f, args = params
     print(f)
     source, tgt = load_json(f, args.lower)
-    return {'src': source, 'tgt': tgt}
+    return {'src': source, 'tgt': tgt, 'id': Path(f).stem}
 
 
 
