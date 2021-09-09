@@ -127,16 +127,12 @@ class Translator(object):
         self.model.eval()
         gold_path = self.args.result_path + '.%d.gold' % step
         can_path = self.args.result_path + '.%d.candidate' % step
-        self.gold_out_file = codecs.open(gold_path, 'w', 'utf-8')
-        self.can_out_file = codecs.open(can_path, 'w', 'utf-8')
-
-        # raw_gold_path = self.args.result_path + '.%d.raw_gold' % step
-        # raw_can_path = self.args.result_path + '.%d.raw_candidate' % step
-        self.gold_out_file = codecs.open(gold_path, 'w', 'utf-8')
-        self.can_out_file = codecs.open(can_path, 'w', 'utf-8')
-
         raw_src_path = self.args.result_path + '.%d.raw_src' % step
+        id_path = self.args.result_path + '.%d.id' % step
+        self.gold_out_file = codecs.open(gold_path, 'w', 'utf-8')
+        self.can_out_file = codecs.open(can_path, 'w', 'utf-8')
         self.src_out_file = codecs.open(raw_src_path, 'w', 'utf-8')
+        self.id_out_file = codecs.open(id_path, 'w', 'utf-8')
 
         # pred_results, gold_results = [], []
         ct = 0
@@ -149,7 +145,7 @@ class Translator(object):
                 batch_data = self.translate_batch(batch)
                 translations = self.from_batch(batch_data)
 
-                for trans in translations:
+                for id_, trans in zip(batch.id_, translations):
                     pred, gold, src = trans
                     pred_str = pred.replace('[unused9]', '').replace('[unused3]', '').replace('[PAD]', '').replace('[unused1]', '').replace(r' +', ' ').replace(' [unused2] ', '<q>').replace('[unused2]', '').strip()
                     gold_str = gold.strip()
@@ -167,22 +163,20 @@ class Translator(object):
                                 gap = can_gap
                                 _pred_str = can_pred_str
 
-
-
-                        # pred_str = ' '.join(pred_str.split()[:len(gold_str.split())])
-                    # self.raw_can_out_file.write(' '.join(pred).strip() + '\n')
-                    # self.raw_gold_out_file.write(' '.join(gold).strip() + '\n')
                     self.can_out_file.write(pred_str + '\n')
                     self.gold_out_file.write(gold_str + '\n')
                     self.src_out_file.write(src.strip() + '\n')
+                    self.id_out_file.write(f'{id_}\n')
                     ct += 1
                 self.can_out_file.flush()
                 self.gold_out_file.flush()
                 self.src_out_file.flush()
+                self.id_out_file.flush()
 
         self.can_out_file.close()
         self.gold_out_file.close()
         self.src_out_file.close()
+        self.id_out_file.close()
 
         if (step != -1):
             rouges = self._report_rouge(gold_path, can_path)
