@@ -294,6 +294,14 @@ class BertData():
 
         return src_subtoken_idxs, sent_labels, tgt_subtoken_idxs, segments_ids, cls_ids, src_txt, tgt_txt
 
+    def preprocess_guidance(self, guidance):
+        sents = [' '.join(sent) for sent in guidance]
+        text = f' {self.sep_token} {self.cls_token} '.join(sents)
+        text = f'{self.cls_token} {text} {self.sep_token}'
+        subtokens = self.tokenizer.tokenize(text)
+        subtoken_idxs = self.tokenizer.convert_tokens_to_ids(subtokens)
+        return subtoken_idxs, text
+
 
 def format_to_bert(args):
     Path(args.save_path).mkdir(exist_ok=True, parents=True)
@@ -337,7 +345,6 @@ def _format_to_bert(params):
             tgt = [' '.join(s).lower().split() for s in tgt]
         b_data = bert.preprocess(source, tgt, sent_labels, use_bert_basic_tokenizer=args.use_bert_basic_tokenizer,
                                  is_test=is_test)
-        # b_data = bert.preprocess(source, tgt, sent_labels, use_bert_basic_tokenizer=args.use_bert_basic_tokenizer)
 
         if (b_data is None):
             continue
@@ -345,6 +352,12 @@ def _format_to_bert(params):
         b_data_dict = {"src": src_subtoken_idxs, "tgt": tgt_subtoken_idxs,
                        "src_sent_labels": sent_labels, "segs": segments_ids, 'clss': cls_ids,
                        'src_txt': src_txt, "tgt_txt": tgt_txt, 'id': id_}
+
+        if 'z' in d:
+            z_subtoken_idxs, z_txt = bert.preprocess_guidance(d['z'])
+            b_data_dict['z'] = z_subtoken_idxs
+            b_data_dict['z_txt'] = z_txt
+
         datasets.append(b_data_dict)
     logger.info('Processed instances %d' % len(datasets))
     logger.info('Saving to %s' % save_file)
