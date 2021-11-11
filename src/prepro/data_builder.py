@@ -341,7 +341,7 @@ def _format_to_bert(params):
         source, tgt = d['src'], d['tgt']
 
         sent_labels = greedy_selection(source[:args.max_src_nsents], tgt, 3)
-        if (args.lower):
+        if args.lower:
             source = [' '.join(s).lower().split() for s in source]
             tgt = [' '.join(s).lower().split() for s in tgt]
         b_data = bert.preprocess(source, tgt, sent_labels, use_bert_basic_tokenizer=args.use_bert_basic_tokenizer,
@@ -355,7 +355,10 @@ def _format_to_bert(params):
                        'src_txt': src_txt, "tgt_txt": tgt_txt, 'id': id_}
 
         if 'z' in d:
-            z_subtoken_idxs, z_txt = bert.preprocess_guidance(d['z'])
+            z = d['z']
+            if args.lower:
+                z = [[tok.lower() for tok in s] for s in z]
+            z_subtoken_idxs, z_txt = bert.preprocess_guidance(z)
             b_data_dict['z'] = z_subtoken_idxs
             b_data_dict['z_txt'] = z_txt
 
