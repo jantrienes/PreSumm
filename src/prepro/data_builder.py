@@ -183,6 +183,7 @@ def greedy_selection(doc_sent_list, abstract_sent_list, summary_size):
         Indexes of the selected sentences in `doc_sent_list`.
     """
     def _rouge_clean(s):
+        s = s.lower()
         return re.sub(r'[^a-zA-Z0-9 ]', '', s)
 
     max_rouge = 0.0
@@ -230,7 +231,7 @@ def hashhex(s):
 class BertData():
     def __init__(self, args):
         self.args = args
-        self.tokenizer = BertTokenizer.from_pretrained(args.pretrained_model, do_lower_case=True)
+        self.tokenizer = BertTokenizer.from_pretrained(args.pretrained_model, do_lower_case=args.lower)
 
         self.sep_token = '[SEP]'
         self.cls_token = '[CLS]'
@@ -340,9 +341,6 @@ def _format_to_bert(params):
         source, tgt = d['src'], d['tgt']
 
         sent_labels = greedy_selection(source[:args.max_src_nsents], tgt, 3)
-        if (args.lower):
-            source = [' '.join(s).lower().split() for s in source]
-            tgt = [' '.join(s).lower().split() for s in tgt]
         b_data = bert.preprocess(source, tgt, sent_labels, use_bert_basic_tokenizer=args.use_bert_basic_tokenizer,
                                  is_test=is_test)
 
