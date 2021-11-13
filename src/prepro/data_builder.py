@@ -10,6 +10,7 @@ import subprocess
 from collections import Counter
 from os.path import join as pjoin
 from pathlib import Path
+from typing import List
 
 import torch
 from multiprocess import Pool
@@ -295,9 +296,16 @@ class BertData():
 
         return src_subtoken_idxs, sent_labels, tgt_subtoken_idxs, segments_ids, cls_ids, src_txt, tgt_txt
 
-    def preprocess_guidance(self, guidance):
+    def preprocess_sentence_guidance(self, guidance: List[List[str]]):
         sents = [' '.join(sent) for sent in guidance]
         text = f' {self.sep_token} {self.cls_token} '.join(sents)
+        text = f'{self.cls_token} {text} {self.sep_token}'
+        subtokens = self.tokenizer.tokenize(text)
+        subtoken_idxs = self.tokenizer.convert_tokens_to_ids(subtokens)
+        return subtoken_idxs, text
+
+    def preprocess_keyword_guidance(self, guidance: List[str]):
+        text = f' {self.sep_token} '.join(guidance)
         text = f'{self.cls_token} {text} {self.sep_token}'
         subtokens = self.tokenizer.tokenize(text)
         subtoken_idxs = self.tokenizer.convert_tokens_to_ids(subtokens)
@@ -358,9 +366,17 @@ def _format_to_bert(params):
             z = d['z']
             if args.lower:
                 z = [[tok.lower() for tok in s] for s in z]
-            z_subtoken_idxs, z_txt = bert.preprocess_guidance(z)
+            z_subtoken_idxs, z_txt = bert.preprocess_sentence_guidance(z)
             b_data_dict['z'] = z_subtoken_idxs
             b_data_dict['z_txt'] = z_txt
+        elif 'z_kws' in d:
+            z = d['z_kws']
+            if args.lower:
+                z = [kw.lower() for kw in z]
+            z_subtoken_idxs, z_txt = bert.preprocess_keyword_guidance(z)
+            b_data_dict['z'] = z_subtoken_idxs
+            b_data_dict['z_txt'] = z_txt
+
 
         datasets.append(b_data_dict)
     logger.info('Processed instances %d' % len(datasets))
