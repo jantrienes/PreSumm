@@ -242,4 +242,7 @@ def train_single_ext(args, device_id):
     logger.info(model)
 
     trainer = build_trainer(args, device_id, model, optim)
-    trainer.train(train_iter_fct, args.train_steps)
+    try:
+        trainer.train(train_iter_fct, args.train_steps)
+    finally:
+        trainer.close_writer()

@@ -40,13 +40,7 @@ def build_trainer(args, device_id, model, optim):
 
     print('gpu_rank %d' % gpu_rank)
 
-    tensorboard_log_dir = args.model_path
-
-    writer = SummaryWriter(tensorboard_log_dir, comment="Unmt")
-
-    report_manager = ReportMgr(args.report_every, start_time=-1, tensorboard_writer=writer)
-
-    trainer = Trainer(args, model, optim, grad_accum_count, n_gpu, gpu_rank, report_manager)
+    trainer = Trainer(args, model, optim, grad_accum_count, n_gpu, gpu_rank)
 
     # print(tr)
     if (model):
@@ -82,8 +76,7 @@ class Trainer(object):
     """
 
     def __init__(self, args, model, optim,
-                 grad_accum_count=1, n_gpu=1, gpu_rank=1,
-                 report_manager=None):
+                 grad_accum_count=1, n_gpu=1, gpu_rank=1):
         # Basic attributes.
         self.args = args
         self.save_checkpoint_steps = args.save_checkpoint_steps
@@ -92,7 +85,13 @@ class Trainer(object):
         self.grad_accum_count = grad_accum_count
         self.n_gpu = n_gpu
         self.gpu_rank = gpu_rank
-        self.report_manager = report_manager
+        self.writer = SummaryWriter(args.model_path, comment="Unmt")
+        self.report_manager = ReportMgr(
+            args.report_every,
+            start_time=-1,
+            tensorboard_writer=self.writer,
+            gpu_rank=self.gpu_rank
+        )
 
         self.loss = torch.nn.BCELoss(reduction='none')
         assert grad_accum_count > 0
@@ -155,6 +154,8 @@ class Trainer(object):
                             step, train_steps,
                             self.optim.learning_rate,
                             report_stats)
+
+                        self._report_gradients(step)
 
                         true_batchs = []
                         accum = 0
@@ -223,7 +224,6 @@ class Trainer(object):
 
         if (not cal_lead and not cal_oracle):
             self.model.eval()
-        stats = Statistics()
 
         can_path = '%s_step%d.candidate' % (self.args.result_path, step)
         gold_path = '%s_step%d.gold' % (self.args.result_path, step)
@@ -289,9 +289,7 @@ class Trainer(object):
         if (step != -1 and self.args.report_rouge):
             rouges = test_rouge(self.args.temp_dir, can_path, gold_path)
             logger.info('Rouges at step %d \n%s' % (step, rouge_results_to_str(rouges)))
-        self._report_step(0, step, valid_stats=stats)
 
-        return stats
 
     def _gradient_accumulation(self, true_batchs, normalization, total_stats,
                                report_stats):
@@ -411,9 +409,28 @@ class Trainer(object):
                 learning_rate, step, train_stats=train_stats,
                 valid_stats=valid_stats)
 
+    def _report_gradients(self, step):
+        if self.writer is None or self.gpu_rank != 0:
+            return
+        if step % self.args.report_gradients_every == 0:
+            for name, param in self.model.named_parameters():
+                if param.requires_grad and param.grad is not None:
+                    self.writer.add_histogram('weight/' + name, param, step)
+                    self.writer.add_histogram('grad/' + name, param.grad, step)
+
+        if step % self.args.report_every == 0:
+            for name, param in self.model.named_parameters():
+                if param.requires_grad and param.grad is not None:
+                    norm = torch.linalg.norm(param.grad)
+                    self.writer.add_scalar('grad_norm/' + name, norm, step)
+
     def _maybe_save(self, step):
         """
         Save the model if a model saver is set
         """
         if self.model_saver is not None:
             self.model_saver.maybe_save(step)
+
+    def close_writer(self):
+        if self.writer is not None:
+            self.writer.close()

@@ -101,7 +101,7 @@ class ReportMgrBase(object):
 
 
 class ReportMgr(ReportMgrBase):
-    def __init__(self, report_every, start_time=-1., tensorboard_writer=None):
+    def __init__(self, report_every, start_time=-1., tensorboard_writer=None, gpu_rank=1):
         """
         A report manager that writes statistics on standard output as well as
         (optionally) TensorBoard
@@ -113,9 +113,10 @@ class ReportMgr(ReportMgrBase):
         """
         super(ReportMgr, self).__init__(report_every, start_time)
         self.tensorboard_writer = tensorboard_writer
+        self.gpu_rank = gpu_rank
 
     def maybe_log_tensorboard(self, stats, prefix, learning_rate, step):
-        if self.tensorboard_writer is not None:
+        if self.tensorboard_writer is not None and self.gpu_rank == 0:
             stats.log_tensorboard(
                 prefix, self.tensorboard_writer, learning_rate, step)
 
