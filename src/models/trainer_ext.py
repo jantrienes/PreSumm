@@ -292,14 +292,14 @@ class Trainer(object):
                     gold.append(batch.tgt_str[i])
                     sample_ids.append(batch.id_[i])
 
-                for i in range(len(gold)):
-                    save_gold.write(gold[i].strip() + '\n')
-                for i in range(len(pred)):
-                    save_pred.write(pred[i].strip() + '\n')
-                for i in range(len(pred_ids)):
-                    save_pred_ids.write(json.dumps(pred_ids[i]) + '\n')
-                for i in range(len(sample_ids)):
-                    id_out_file.write(sample_ids[i] + '\n')
+                for s in gold:
+                    save_gold.write(s.strip() + '\n')
+                for s in pred:
+                    save_pred.write(s.strip() + '\n')
+                for ids in pred_ids:
+                    save_pred_ids.write(json.dumps(ids) + '\n')
+                for ids in sample_ids:
+                    id_out_file.write(ids + '\n')
         if (step != -1 and self.args.report_rouge):
             rouges = test_rouge(self.args.temp_dir, can_path, gold_path)
             logger.info('Rouges at step %d \n%s' % (step, rouge_results_to_str(rouges)))
