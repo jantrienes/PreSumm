@@ -227,7 +227,11 @@ class Trainer(object):
 
         can_path = self.args.result_path + '.%d.candidate' % step
         gold_path = self.args.result_path + '.%d.gold' % step
-        with open(can_path, 'w') as save_pred, open(gold_path, 'w') as save_gold, torch.no_grad():
+        id_path = self.args.result_path + '.%d.id' % step
+        with open(can_path, 'w') as save_pred, \
+             open(gold_path, 'w') as save_gold, \
+             open(id_path, 'w') as id_out_file, \
+             torch.no_grad():
             for batch in test_iter:
                 src = batch.src
                 labels = batch.src_sent_labels
@@ -238,6 +242,7 @@ class Trainer(object):
 
                 gold = []
                 pred = []
+                sample_ids = []
 
                 if (cal_lead):
                     selected_ids = [list(range(batch.clss.size(1)))] * batch.batch_size
@@ -279,11 +284,14 @@ class Trainer(object):
 
                     pred.append(_pred)
                     gold.append(batch.tgt_str[i])
+                    sample_ids.append(batch.id_[i])
 
                 for i in range(len(gold)):
                     save_gold.write(gold[i].strip() + '\n')
                 for i in range(len(pred)):
                     save_pred.write(pred[i].strip() + '\n')
+                for i in range(len(sample_ids)):
+                    id_out_file.write(sample_ids[i] + '\n')
         if (step != -1 and self.args.report_rouge):
             rouges = test_rouge(self.args.temp_dir, can_path, gold_path)
             logger.info('Rouges at step %d \n%s' % (step, rouge_results_to_str(rouges)))
