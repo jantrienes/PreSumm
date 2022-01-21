@@ -1,5 +1,6 @@
 [
   {
+    "id": "sample0.story",
     "src": [
       [
         "(",
@@ -1380,6 +1381,7 @@
     ]
   },
   {
+    "id": "sample1.story",
     "src": [
       [
         "by"
@@ -2251,6 +2253,7 @@
     ]
   },
   {
+    "id": "sample2.story",
     "src": [
       [
         "by"
@@ -3318,6 +3321,7 @@
     ]
   },
   {
+    "id": "sample3.story",
     "src": [
       [
         "when",
@@ -4445,6 +4449,7 @@
     ]
   },
   {
+    "id": "sample4.story",
     "src": [
       [
         "(",
@@ -4748,6 +4753,7 @@
     ]
   },
   {
+    "id": "sample5.story",
     "src": [
       [
         "by"
