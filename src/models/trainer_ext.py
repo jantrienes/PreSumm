@@ -261,7 +261,7 @@ class Trainer(object):
 
                     sent_scores = sent_scores + mask.float()
                     sent_scores = sent_scores.cpu().data.numpy()
-                    selected_ids = np.argsort(-sent_scores, 1)
+                    selected_ids = np.argsort(-sent_scores, 1).tolist()
                 # selected_ids = np.sort(selected_ids,1)
                 for i, idx in enumerate(selected_ids):
                     _pred = []
