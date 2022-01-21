@@ -3,6 +3,7 @@ import os
 import numpy as np
 import torch
 from tensorboardX import SummaryWriter
+import json
 
 import distributed
 from models.reporter_ext import ReportMgr, Statistics
@@ -226,9 +227,11 @@ class Trainer(object):
             self.model.eval()
 
         can_path = self.args.result_path + '.%d.candidate' % step
+        can_ids_path = self.args.result_path + '.%d.candidate_ids' % step
         gold_path = self.args.result_path + '.%d.gold' % step
         id_path = self.args.result_path + '.%d.id' % step
         with open(can_path, 'w') as save_pred, \
+             open(can_ids_path, 'w') as save_pred_ids, \
              open(gold_path, 'w') as save_gold, \
              open(id_path, 'w') as id_out_file, \
              torch.no_grad():
@@ -242,6 +245,7 @@ class Trainer(object):
 
                 gold = []
                 pred = []
+                pred_ids = [] # indices of predicted sentences in src
                 sample_ids = []
 
                 if (cal_lead):
@@ -257,10 +261,11 @@ class Trainer(object):
 
                     sent_scores = sent_scores + mask.float()
                     sent_scores = sent_scores.cpu().data.numpy()
-                    selected_ids = np.argsort(-sent_scores, 1)
+                    selected_ids = np.argsort(-sent_scores, 1).tolist()
                 # selected_ids = np.sort(selected_ids,1)
                 for i, idx in enumerate(selected_ids):
                     _pred = []
+                    _pred_ids = []
                     if (len(batch.src_str[i]) == 0):
                         continue
                     for j in selected_ids[i][:len(batch.src_str[i])]:
@@ -270,8 +275,10 @@ class Trainer(object):
                         if (self.args.block_trigram):
                             if (not _block_tri(candidate, _pred)):
                                 _pred.append(candidate)
+                                _pred_ids.append(j)
                         else:
                             _pred.append(candidate)
+                            _pred_ids.append(j)
 
                         if ((not cal_oracle) and (not self.args.recall_eval) and len(_pred) == 3):
                             break
@@ -281,15 +288,18 @@ class Trainer(object):
                         _pred = ' '.join(_pred.split()[:len(batch.tgt_str[i].split())])
 
                     pred.append(_pred)
+                    pred_ids.append(_pred_ids)
                     gold.append(batch.tgt_str[i])
                     sample_ids.append(batch.id_[i])
 
-                for i in range(len(gold)):
-                    save_gold.write(gold[i].strip() + '\n')
-                for i in range(len(pred)):
-                    save_pred.write(pred[i].strip() + '\n')
-                for i in range(len(sample_ids)):
-                    id_out_file.write(sample_ids[i] + '\n')
+                for s in gold:
+                    save_gold.write(s.strip() + '\n')
+                for s in pred:
+                    save_pred.write(s.strip() + '\n')
+                for ids in pred_ids:
+                    save_pred_ids.write(json.dumps(ids) + '\n')
+                for ids in sample_ids:
+                    id_out_file.write(ids + '\n')
         if (step != -1 and self.args.report_rouge):
             rouges = test_rouge(self.args.temp_dir, can_path, gold_path)
             logger.info('Rouges at step %d \n%s' % (step, rouge_results_to_str(rouges)))
