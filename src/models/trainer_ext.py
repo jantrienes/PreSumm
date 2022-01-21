@@ -298,8 +298,8 @@ class Trainer(object):
                     save_pred.write(s.strip() + '\n')
                 for ids in pred_ids:
                     save_pred_ids.write(json.dumps(ids) + '\n')
-                for ids in sample_ids:
-                    id_out_file.write(ids + '\n')
+                for id_ in sample_ids:
+                    id_out_file.write(str(id_) + '\n')
         if (step != -1 and self.args.report_rouge):
             rouges = test_rouge(self.args.temp_dir, can_path, gold_path)
             logger.info('Rouges at step %d \n%s' % (step, rouge_results_to_str(rouges)))
