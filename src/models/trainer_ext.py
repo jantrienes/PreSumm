@@ -228,10 +228,12 @@ class Trainer(object):
 
         can_path = self.args.result_path + '.%d.candidate' % step
         can_ids_path = self.args.result_path + '.%d.candidate_ids' % step
+        can_ids_orig_path = self.args.result_path + '.%d.candidate_ids_orig' % step
         gold_path = self.args.result_path + '.%d.gold' % step
         id_path = self.args.result_path + '.%d.id' % step
         with open(can_path, 'w') as save_pred, \
              open(can_ids_path, 'w') as save_pred_ids, \
+             open(can_ids_orig_path, 'w') as save_pred_ids_orig, \
              open(gold_path, 'w') as save_gold, \
              open(id_path, 'w') as id_out_file, \
              torch.no_grad():
@@ -246,6 +248,7 @@ class Trainer(object):
                 gold = []
                 pred = []
                 pred_ids = [] # indices of predicted sentences in src
+                pred_ids_orig = [] # indices src before filtering in prepro.data_builder
                 sample_ids = []
 
                 if (cal_lead):
@@ -289,6 +292,7 @@ class Trainer(object):
 
                     pred.append(_pred)
                     pred_ids.append(_pred_ids)
+                    pred_ids_orig.append(batch.original_idxs[i])
                     gold.append(batch.tgt_str[i])
                     sample_ids.append(batch.id_[i])
 
@@ -298,6 +302,8 @@ class Trainer(object):
                     save_pred.write(s.strip() + '\n')
                 for ids in pred_ids:
                     save_pred_ids.write(json.dumps(ids) + '\n')
+                for ids in pred_ids_orig:
+                    save_pred_ids_orig.write(json.dumps(ids) + '\n')
                 for id_ in sample_ids:
                     id_out_file.write(str(id_) + '\n')
         if (step != -1 and self.args.report_rouge):

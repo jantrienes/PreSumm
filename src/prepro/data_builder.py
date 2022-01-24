@@ -7,7 +7,7 @@ import os
 import random
 import re
 import subprocess
-from collections import Counter
+from collections import Counter, namedtuple
 from os.path import join as pjoin
 from pathlib import Path
 from typing import List
@@ -294,7 +294,29 @@ class BertData():
         tgt_txt = '<q>'.join([' '.join(tt) for tt in tgt])
         src_txt = [original_src_txt[i] for i in idxs]
 
-        return src_subtoken_idxs, sent_labels, tgt_subtoken_idxs, segments_ids, cls_ids, src_txt, tgt_txt
+        data = namedtuple(
+            "data",
+            [
+                "src_subtoken_idxs",
+                "sent_labels",
+                "tgt_subtoken_idxs",
+                "segments_ids",
+                "cls_ids",
+                "src_txt",
+                "tgt_txt",
+                "original_idxs",
+            ],
+        )
+        return data(
+            src_subtoken_idxs,
+            sent_labels,
+            tgt_subtoken_idxs,
+            segments_ids,
+            cls_ids,
+            src_txt,
+            tgt_txt,
+            idxs,
+        )
 
     def preprocess_sentence_guidance(self, guidance: List[List[str]]):
         sents = [' '.join(sent) for sent in guidance]
@@ -352,15 +374,23 @@ def _format_to_bert(params):
         if args.lower:
             source = [' '.join(s).lower().split() for s in source]
             tgt = [' '.join(s).lower().split() for s in tgt]
+        # TODO: add field to batch in data_loader that holds the original sentence ids.
         b_data = bert.preprocess(source, tgt, sent_labels, use_bert_basic_tokenizer=args.use_bert_basic_tokenizer,
                                  is_test=is_test)
 
         if (b_data is None):
             continue
-        src_subtoken_idxs, sent_labels, tgt_subtoken_idxs, segments_ids, cls_ids, src_txt, tgt_txt = b_data
-        b_data_dict = {"src": src_subtoken_idxs, "tgt": tgt_subtoken_idxs,
-                       "src_sent_labels": sent_labels, "segs": segments_ids, 'clss': cls_ids,
-                       'src_txt': src_txt, "tgt_txt": tgt_txt, 'id': id_}
+        b_data_dict = {
+            "src": b_data.src_subtoken_idxs,
+            "tgt": b_data.tgt_subtoken_idxs,
+            "src_sent_labels": b_data.sent_labels,
+            "segs": b_data.segments_ids,
+            'clss': b_data.cls_ids,
+            "original_idxs": b_data.original_idxs,
+            'src_txt': b_data.src_txt,
+            "tgt_txt": b_data.tgt_txt,
+            'id': id_
+        }
 
         if 'z' in d:
             z = d['z']
