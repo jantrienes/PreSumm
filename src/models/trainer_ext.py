@@ -292,7 +292,7 @@ class Trainer(object):
 
                     pred.append(_pred)
                     pred_ids.append(_pred_ids)
-                    pred_ids_orig.append(batch.original_idxs[i])
+                    pred_ids_orig.append([batch.original_idxs[i][j] for j in _pred_ids])
                     gold.append(batch.tgt_str[i])
                     sample_ids.append(batch.id_[i])
 
