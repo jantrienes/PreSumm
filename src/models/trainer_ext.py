@@ -283,7 +283,7 @@ class Trainer(object):
                             _pred.append(candidate)
                             _pred_ids.append(j)
 
-                        if ((not cal_oracle) and (not self.args.recall_eval) and len(_pred) == 3):
+                        if ((not cal_oracle) and (not self.args.recall_eval) and len(_pred) == self.args.max_pred_sents):
                             break
 
                     _pred = '<q>'.join(_pred)
