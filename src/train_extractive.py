@@ -173,7 +173,7 @@ def validate(args, device_id, pt, step):
     return stats.xent()
 
 
-def test_ext(args, device_id, pt, step):
+def test_ext(args, device_id, pt, step, split_name='test'):
     device = "cpu" if args.visible_gpus == '-1' else "cuda"
     if (pt != ''):
         test_from = pt
@@ -190,7 +190,7 @@ def test_ext(args, device_id, pt, step):
     model = ExtSummarizer(args, device, checkpoint)
     model.eval()
 
-    test_iter = data_loader.Dataloader(args, load_dataset(args, 'test', shuffle=False),
+    test_iter = data_loader.Dataloader(args, load_dataset(args, split_name, shuffle=False),
                                        args.test_batch_size, device,
                                        shuffle=False, is_test=True)
     trainer = build_trainer(args, device_id, model, None)

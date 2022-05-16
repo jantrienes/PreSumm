@@ -105,6 +105,7 @@ if __name__ == '__main__':
     parser.add_argument("-test_all", type=str2bool, nargs='?',const=True,default=False)
     parser.add_argument("-test_from", default='')
     parser.add_argument("-test_start_from", default=-1, type=int)
+    parser.add_argument("-test_split_name", default='test')
 
     parser.add_argument("-train_from", default='')
     parser.add_argument("-report_rouge", type=str2bool, nargs='?',const=True,default=True)
@@ -143,22 +144,15 @@ if __name__ == '__main__':
                 step = 0
                 test_text_abs(args, device_id, cp, step)
 
-    elif (args.task == 'ext'):
-        if (args.mode == 'train'):
+    elif args.task == 'ext':
+        if args.mode == 'train':
             train_ext(args, device_id)
-        elif (args.mode == 'validate'):
+        elif args.mode == 'validate':
             validate_ext(args, device_id)
-        if (args.mode == 'test'):
+        elif args.mode == 'test':
             cp = args.test_from
             try:
                 step = int(cp.split('.')[-2].split('_')[-1])
             except:
                 step = 0
-            test_ext(args, device_id, cp, step)
-        elif (args.mode == 'test_text'):
-            cp = args.test_from
-            try:
-                step = int(cp.split('.')[-2].split('_')[-1])
-            except:
-                step = 0
-                test_text_abs(args, device_id, cp, step)
+            test_ext(args, device_id, cp, step, args.test_split_name)
