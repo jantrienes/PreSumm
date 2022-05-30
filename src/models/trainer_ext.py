@@ -269,13 +269,13 @@ class Trainer(object):
                     sent_scores = sent_scores.cpu().data.numpy()
                     selected_ids = np.argsort(-sent_scores, 1).tolist()
 
-                for s, l, m in zip(sent_scores.cpu(), labels.cpu(), mask.cpu()):
-                    data = {
-                        'y_pred_proba': s.tolist(),
-                        'y_true': l.tolist(),
-                        'mask': m.tolist()
-                    }
-                    save_pred_scores.write(json.dumps(data) + '\n')
+                    for s, l, m in zip(sent_scores, labels.cpu(), mask.cpu()):
+                        data = {
+                            'y_pred_proba': s.tolist(),
+                            'y_true': l.tolist(),
+                            'mask': m.tolist()
+                        }
+                        save_pred_scores.write(json.dumps(data) + '\n')
 
                 # selected_ids = np.sort(selected_ids,1)
                 for i, idx in enumerate(selected_ids): # i = doc
