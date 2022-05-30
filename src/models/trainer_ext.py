@@ -268,6 +268,15 @@ class Trainer(object):
                     sent_scores = sent_scores + mask.float()
                     sent_scores = sent_scores.cpu().data.numpy()
                     selected_ids = np.argsort(-sent_scores, 1).tolist()
+
+                for s, l, m in zip(sent_scores.cpu(), labels.cpu(), mask.cpu()):
+                    data = {
+                        'y_pred_proba': s.tolist(),
+                        'y_true': l.tolist(),
+                        'mask': m.tolist()
+                    }
+                    save_pred_scores.write(json.dumps(data) + '\n')
+
                 # selected_ids = np.sort(selected_ids,1)
                 for i, idx in enumerate(selected_ids): # i = doc
                     _pred = []
@@ -284,11 +293,9 @@ class Trainer(object):
                             if (not _block_tri(candidate, _pred)):
                                 _pred.append(candidate)
                                 _pred_ids.append(j)
-                                _pred_scores.append(score)
                         else:
                             _pred.append(candidate)
                             _pred_ids.append(j)
-                            _pred_scores.append(score)
 
                         if ((not cal_oracle) and (not self.args.recall_eval) and len(_pred) == self.args.max_pred_sents):
                             break
@@ -300,7 +307,6 @@ class Trainer(object):
                     pred.append(_pred)
                     pred_ids.append(_pred_ids)
                     pred_ids_orig.append([batch.original_idxs[i][j] for j in _pred_ids])
-                    pred_scores.append(_pred_scores)
                     gold.append(batch.tgt_str[i])
                     sample_ids.append(batch.id_[i])
 
@@ -312,8 +318,6 @@ class Trainer(object):
                     save_pred_ids.write(json.dumps(ids) + '\n')
                 for ids in pred_ids_orig:
                     save_pred_ids_orig.write(json.dumps(ids) + '\n')
-                for scores in pred_scores:
-                    save_pred_scores.write(json.dumps(scores) + '\n')
                 for id_ in sample_ids:
                     id_out_file.write(str(id_) + '\n')
         if (step != -1 and self.args.report_rouge):
