@@ -226,12 +226,12 @@ class Trainer(object):
         if (not cal_lead and not cal_oracle):
             self.model.eval()
 
-        can_path = self.args.result_path + f'{step}.candidate'
-        can_ids_path = self.args.result_path + f'{step}.candidate_ids'
-        can_ids_orig_path = self.args.result_path + f'{step}.candidate_ids_orig'
-        scores_path = self.args.result_path + f'{step}.scores'
-        gold_path = self.args.result_path + f'{step}.gold'
-        id_path = self.args.result_path + f'{step}.id'
+        can_path = self.args.result_path + f'.{step}.candidate'
+        can_ids_path = self.args.result_path + f'.{step}.candidate_ids'
+        can_ids_orig_path = self.args.result_path + f'.{step}.candidate_ids_orig'
+        scores_path = self.args.result_path + f'.{step}.scores'
+        gold_path = self.args.result_path + f'.{step}.gold'
+        id_path = self.args.result_path + f'.{step}.id'
         with open(can_path, 'w') as save_pred, \
              open(can_ids_path, 'w') as save_pred_ids, \
              open(can_ids_orig_path, 'w') as save_pred_ids_orig, \
