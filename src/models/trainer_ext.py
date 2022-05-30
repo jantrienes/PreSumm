@@ -226,14 +226,16 @@ class Trainer(object):
         if (not cal_lead and not cal_oracle):
             self.model.eval()
 
-        can_path = self.args.result_path + '.%d.candidate' % step
-        can_ids_path = self.args.result_path + '.%d.candidate_ids' % step
-        can_ids_orig_path = self.args.result_path + '.%d.candidate_ids_orig' % step
-        gold_path = self.args.result_path + '.%d.gold' % step
-        id_path = self.args.result_path + '.%d.id' % step
+        can_path = self.args.result_path + f'{step}.candidate'
+        can_ids_path = self.args.result_path + f'{step}.candidate_ids'
+        can_ids_orig_path = self.args.result_path + f'{step}.candidate_ids_orig'
+        scores_path = self.args.result_path + f'{step}.scores'
+        gold_path = self.args.result_path + f'{step}.gold'
+        id_path = self.args.result_path + f'{step}.id'
         with open(can_path, 'w') as save_pred, \
              open(can_ids_path, 'w') as save_pred_ids, \
              open(can_ids_orig_path, 'w') as save_pred_ids_orig, \
+             open(scores_path, 'w') as save_pred_scores, \
              open(gold_path, 'w') as save_gold, \
              open(id_path, 'w') as id_out_file, \
              torch.no_grad():
@@ -249,6 +251,7 @@ class Trainer(object):
                 pred = []
                 pred_ids = [] # indices of predicted sentences in src
                 pred_ids_orig = [] # indices src before filtering in prepro.data_builder
+                pred_scores = []
                 sample_ids = []
 
                 if (cal_lead):
@@ -266,22 +269,26 @@ class Trainer(object):
                     sent_scores = sent_scores.cpu().data.numpy()
                     selected_ids = np.argsort(-sent_scores, 1).tolist()
                 # selected_ids = np.sort(selected_ids,1)
-                for i, idx in enumerate(selected_ids):
+                for i, idx in enumerate(selected_ids): # i = doc
                     _pred = []
                     _pred_ids = []
+                    _pred_scores = []
                     if (len(batch.src_str[i]) == 0):
                         continue
-                    for j in selected_ids[i][:len(batch.src_str[i])]:
+                    for j in selected_ids[i][:len(batch.src_str[i])]: # j = sent
                         if (j >= len(batch.src_str[i])):
                             continue
                         candidate = batch.src_str[i][j].strip()
+                        score = float(sent_scores[i][j])
                         if (self.args.block_trigram):
                             if (not _block_tri(candidate, _pred)):
                                 _pred.append(candidate)
                                 _pred_ids.append(j)
+                                _pred_scores.append(score)
                         else:
                             _pred.append(candidate)
                             _pred_ids.append(j)
+                            _pred_scores.append(score)
 
                         if ((not cal_oracle) and (not self.args.recall_eval) and len(_pred) == self.args.max_pred_sents):
                             break
@@ -293,6 +300,7 @@ class Trainer(object):
                     pred.append(_pred)
                     pred_ids.append(_pred_ids)
                     pred_ids_orig.append([batch.original_idxs[i][j] for j in _pred_ids])
+                    pred_scores.append(_pred_scores)
                     gold.append(batch.tgt_str[i])
                     sample_ids.append(batch.id_[i])
 
@@ -304,6 +312,8 @@ class Trainer(object):
                     save_pred_ids.write(json.dumps(ids) + '\n')
                 for ids in pred_ids_orig:
                     save_pred_ids_orig.write(json.dumps(ids) + '\n')
+                for scores in pred_scores:
+                    save_pred_scores.write(json.dumps(scores) + '\n')
                 for id_ in sample_ids:
                     id_out_file.write(str(id_) + '\n')
         if (step != -1 and self.args.report_rouge):
