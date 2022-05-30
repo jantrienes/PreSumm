@@ -261,13 +261,10 @@ class Trainer(object):
                                     range(batch.batch_size)]
                 else:
                     sent_scores, mask = self.model(src, segs, clss, mask, mask_cls)
-                    if self.args.ext_threshold:
-                        sent_scores = sent_scores * (sent_scores >= self.args.ext_threshold)
 
                     loss = self.loss(sent_scores, labels.float())
                     loss = (loss * mask.float()).sum()
 
-                    sent_scores = sent_scores + mask.float()
                     sent_scores = sent_scores.cpu().data.numpy()
                     selected_ids = np.argsort(-sent_scores, 1).tolist()
 
@@ -291,6 +288,9 @@ class Trainer(object):
                             continue
                         candidate = batch.src_str[i][j].strip()
                         score = float(sent_scores[i][j])
+                        if score < self.args.ext_threshold:
+                            continue
+                        
                         if (self.args.block_trigram):
                             if (not _block_tri(candidate, _pred)):
                                 _pred.append(candidate)
