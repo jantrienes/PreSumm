@@ -15,3 +15,4 @@ dependencies:
     - pytorch-transformers==1.2.0
     - tensorboardX==2.4
     - tensorboard==2.6.0
+    - protobuf<3.21
