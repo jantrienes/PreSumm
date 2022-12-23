@@ -279,46 +279,54 @@ class Trainer(object):
         if (not cal_lead and not cal_oracle):
             self.model.eval()
 
-        can_path = '%s_step%d.candidate'%(self.args.result_path,step)
-        gold_path = '%s_step%d.gold' % (self.args.result_path, step)
-        with open(can_path, 'w') as save_pred:
-            with open(gold_path, 'w') as save_gold:
-                with torch.no_grad():
-                    for batch in test_iter:
-                        gold = []
-                        pred = []
-                        labels = batch.src_sent_labels
-                        if (cal_lead):
-                            selected_ids = [list(range(batch.clss.size(1)))] * batch.batch_size
-                        elif (cal_oracle):
-                            selected_ids = [
-                                [j for j in range(batch.clss.size(1)) if labels[i][j] == 1]
-                                for i in range(batch.batch_size)
-                            ]
-                        for i, idx in enumerate(selected_ids):
-                            _pred = []
-                            if(len(batch.src_str[i])==0):
-                                continue
-                            for j in selected_ids[i][:len(batch.src_str[i])]:
-                                if(j>=len( batch.src_str[i])):
-                                    continue
-                                candidate = batch.src_str[i][j].strip()
-                                _pred.append(candidate)
+        can_path = self.args.result_path + f'.{step}.candidate'
+        gold_path = self.args.result_path + f'.{step}.gold'
+        id_path = self.args.result_path + f'.{step}.id'
 
-                                if ((not cal_oracle) and (not self.args.recall_eval) and len(_pred) == 3):
-                                    break
+        with open(can_path, 'w') as save_pred, \
+             open(gold_path, 'w') as save_gold, \
+             open(id_path, 'w') as id_out_file, \
+             torch.no_grad():
 
-                            _pred = '<q>'.join(_pred)
-                            if(self.args.recall_eval):
-                                _pred = ' '.join(_pred.split()[:len(batch.tgt_str[i].split())])
+            for batch in test_iter:
+                gold = []
+                pred = []
+                sample_ids = []
+                labels = batch.src_sent_labels
+                if (cal_lead):
+                    selected_ids = [list(range(batch.clss.size(1)))] * batch.batch_size
+                elif (cal_oracle):
+                    selected_ids = [
+                        [j for j in range(batch.clss.size(1)) if labels[i][j] == 1]
+                        for i in range(batch.batch_size)
+                    ]
+                for i, idx in enumerate(selected_ids):
+                    _pred = []
+                    if(len(batch.src_str[i])==0):
+                        continue
+                    for j in selected_ids[i][:len(batch.src_str[i])]:
+                        if(j>=len( batch.src_str[i])):
+                            continue
+                        candidate = batch.src_str[i][j].strip()
+                        _pred.append(candidate)
 
-                            pred.append(_pred)
-                            gold.append(batch.tgt_str[i])
+                        if ((not cal_oracle) and (not self.args.recall_eval) and len(_pred) == 3):
+                            break
 
-                        for i in range(len(gold)):
-                            save_gold.write(gold[i].strip()+'\n')
-                        for i in range(len(pred)):
-                            save_pred.write(pred[i].strip()+'\n')
+                    _pred = '<q>'.join(_pred)
+                    if(self.args.recall_eval):
+                        _pred = ' '.join(_pred.split()[:len(batch.tgt_str[i].split())])
+
+                    pred.append(_pred)
+                    gold.append(batch.tgt_str[i])
+                    sample_ids.append(batch.id_[i])
+
+                for s in gold:
+                    save_gold.write(s.strip() + '\n')
+                for s in pred:
+                    save_pred.write(s.strip() + '\n')
+                for id_ in sample_ids:
+                    id_out_file.write(str(id_) + '\n')
         if(step!=-1 and self.args.report_rouge):
             rouges = test_rouge(self.args.temp_dir, can_path, gold_path)
             logger.info('Rouges at step %d \n%s' % (step, rouge_results_to_str(rouges)))
