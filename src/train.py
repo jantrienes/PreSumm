@@ -67,6 +67,7 @@ if __name__ == '__main__':
     parser.add_argument("-ext_heads", default=8, type=int)
     parser.add_argument("-ext_ff_size", default=2048, type=int)
     parser.add_argument("-ext_threshold", default=0, type=float)
+    parser.add_argument("-ext_threshold_sweep", type=str2bool, nargs='?', const=True, default=False)
     parser.add_argument("-max_pred_sents", default=3, type=int)
 
     parser.add_argument("-label_smoothing", default=0.1, type=float)

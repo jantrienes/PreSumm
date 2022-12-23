@@ -10,8 +10,10 @@ import os
 import random
 import signal
 import time
+from pathlib import Path
 
 import torch
+import numpy as np
 
 import distributed
 from models import data_loader, model_builder
@@ -190,11 +192,37 @@ def test_ext(args, device_id, pt, step, split_name='test'):
     model = ExtSummarizer(args, device, checkpoint)
     model.eval()
 
-    test_iter = data_loader.Dataloader(args, load_dataset(args, split_name, shuffle=False),
-                                       args.test_batch_size, device,
-                                       shuffle=False, is_test=True)
-    trainer = build_trainer(args, device_id, model, None)
-    trainer.test(test_iter, step)
+    if args.ext_threshold_sweep:
+        result_path = Path(args.result_path).parent
+        for t in np.linspace(0, 1, 50):
+            test_iter = data_loader.Dataloader(
+                args,
+                load_dataset(args, split_name, shuffle=False),
+                args.test_batch_size,
+                device,
+                shuffle=False,
+                is_test=True
+            )
+            trainer = build_trainer(args, device_id, model, None)
+
+            t = round(t, 6)
+            run_path = result_path / f"validate_threshold_{t}"
+            run_path.mkdir()
+            args.result_path = str(run_path / 'summaries')
+            args.ext_threshold = t
+            print('='*10, f'threshold = {t}')
+            trainer.test(test_iter, step)
+    else:
+        test_iter = data_loader.Dataloader(
+            args,
+            load_dataset(args, split_name, shuffle=False),
+            args.test_batch_size,
+            device,
+            shuffle=False,
+            is_test=True
+        )
+        trainer = build_trainer(args, device_id, model, None)
+        trainer.test(test_iter, step)
 
 def train_ext(args, device_id):
     if (args.world_size > 1):
