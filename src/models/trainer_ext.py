@@ -7,6 +7,8 @@ import json
 
 import distributed
 from models.reporter_ext import ReportMgr, Statistics
+from models import data_loader
+from models.data_loader import load_dataset
 from others.logging import logger
 from others.utils import test_rouge, rouge_results_to_str
 
@@ -161,8 +163,11 @@ class Trainer(object):
                         true_batchs = []
                         accum = 0
                         normalization = 0
-                        if (step % self.save_checkpoint_steps == 0 and self.gpu_rank == 0):
-                            self._save(step)
+                        if self.gpu_rank == 0:
+                            if self.save_checkpoint_steps > 0 and step % self.save_checkpoint_steps == 0:
+                                self._save(step)
+                            if self.args.validate_steps > 0 and step % self.args.validate_steps == 0:
+                                self._validate(step)
 
                         step += 1
                         if step > train_steps:
@@ -170,6 +175,22 @@ class Trainer(object):
             train_iter = train_iter_fct()
 
         return total_stats
+
+
+    def _validate(self, step):
+        self.model.eval()
+        device = "cpu" if self.args.visible_gpus == '-1' else "cuda"
+        valid_iter = data_loader.Dataloader(
+            self.args,
+            load_dataset(self.args, 'valid', shuffle=False),
+            self.args.batch_size,
+            device,
+            shuffle=False,
+            is_test=False
+        )
+        self.validate(valid_iter, step)
+        self.model.train() # set model back into training state after evaluation
+
 
     def validate(self, valid_iter, step=0):
         """ Validate model.
@@ -451,7 +472,7 @@ class Trainer(object):
     def _report_gradients(self, step):
         if self.writer is None or self.gpu_rank != 0:
             return
-        if step % self.args.report_gradients_every == 0:
+        if self.args.report_gradients_every > 0 and step % self.args.report_gradients_every == 0:
             for name, param in self.model.named_parameters():
                 if param.requires_grad and param.grad is not None:
                     self.writer.add_histogram('weight/' + name, param, step)
