@@ -105,6 +105,10 @@ class ErrorHandler(object):
         raise Exception(msg)
 
 
+def step_from_cp(cp):
+    return int(cp.split('.')[-2].split('_')[-1])
+
+
 def validate_ext(args, device_id):
     timestep = 0
     if (args.test_all):
@@ -112,21 +116,34 @@ def validate_ext(args, device_id):
         cp_files.sort(key=os.path.getmtime)
         xent_lst = []
         for i, cp in enumerate(cp_files):
-            step = int(cp.split('.')[-2].split('_')[-1])
+            step = step_from_cp(cp)
             xent = validate(args, device_id, cp, step)
             xent_lst.append((xent, cp))
             max_step = xent_lst.index(min(xent_lst))
             if (i - max_step > 10):
+                # current step is too far away from the best checkpoint. abort.
                 break
-        xent_lst = sorted(xent_lst, key=lambda x: x[0])[:3]
+
+        # Sort steps from lowest to highest loss
+        xent_lst = sorted(xent_lst, key=lambda x: x[0])
+
+        # Write validation curve
+        with open(os.path.join(args.model_path, 'validation-loss.csv'), 'w') as fout:
+            fout.write('step,xent,checkpoint_path\n')
+            for xent, cp in xent_lst:
+                step = step_from_cp(cp)
+                fout.write(f'{step},{xent},{cp}\n')
+
+        test_k = 5
+        logger.info(f'Testing {test_k} checkpoints with lowest validation loss.')
         logger.info('PPL %s' % str(xent_lst))
-        for xent, cp in xent_lst:
-            step = int(cp.split('.')[-2].split('_')[-1])
+        for xent, cp in xent_lst[:test_k]:
+            step = step_from_cp(cp)
             test_ext(args, device_id, cp, step)
-        xent, best_cp = xent_lst[0]
-        step = int(best_cp.split('.')[-2].split('_')[-1])
+
+        # Write step of best checkpoint
         with open(os.path.join(args.model_path, 'model_step_best.txt'), 'w') as fout:
-            fout.write(f'{step}\n')
+            fout.write(f'{step_from_cp(xent_lst[0][1])}\n')
     else:
         while (True):
             cp_files = sorted(glob.glob(os.path.join(args.model_path, 'model_step_*.pt')))
@@ -139,7 +156,7 @@ def validate_ext(args, device_id):
                     continue
                 if (time_of_cp > timestep):
                     timestep = time_of_cp
-                    step = int(cp.split('.')[-2].split('_')[-1])
+                    step = step_from_cp(cp)
                     validate(args, device_id, cp, step)
                     test_ext(args, device_id, cp, step)
 
