@@ -1,3 +1,4 @@
+import re
 import bisect
 import gc
 import glob
@@ -84,7 +85,8 @@ def load_dataset(args, corpus_type, shuffle):
         return dataset
 
     # Sort the glob output by file name (by increasing indexes).
-    pts = sorted(glob.glob(args.bert_data_path + '.' + corpus_type + '.[0-9]*.pt'))
+    pts = glob.glob(args.bert_data_path + '.' + corpus_type + '.[0-9]*.pt')
+    pts = sorted(pts, key=lambda x: int(re.search('(\d+)', x).group(1)))
     if pts:
         if (shuffle):
             random.shuffle(pts)
