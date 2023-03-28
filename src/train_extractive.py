@@ -114,36 +114,55 @@ def validate_ext(args, device_id):
     if (args.test_all):
         cp_files = sorted(glob.glob(os.path.join(args.model_path, 'model_step_*.pt')))
         cp_files.sort(key=os.path.getmtime)
-        xent_lst = []
+
+        metric = args.metric_best
+        lower_is_better = metric == 'ppl'
+
+        result_path_old = args.result_path
+        result_path = Path(result_path_old).parent / 'validation'
+        result_path.mkdir(exist_ok=True)
+        result_path = result_path / Path(result_path_old).stem
+        args.result_path = str(result_path)
+
+        scores = []
         for i, cp in enumerate(cp_files):
             step = step_from_cp(cp)
-            xent = validate(args, device_id, cp, step)
-            xent_lst.append((xent, cp))
-            max_step = xent_lst.index(min(xent_lst))
+            if metric == 'ppl':
+                score = validate(args, device_id, cp, step)
+                scores.append((score, cp))
+            else:
+                rouges = test_ext(args, device_id, cp, step, split_name='valid')
+                scores.append((rouges[metric], cp))
+                print(rouges)
+            if lower_is_better:
+                max_step = scores.index(min(scores))
+            else:
+                max_step = scores.index(max(scores))
             if (i - max_step > 10):
                 # current step is too far away from the best checkpoint. abort.
                 break
 
+        args.result_path = result_path_old
         # Sort steps from lowest to highest loss
-        xent_lst = sorted(xent_lst, key=lambda x: x[0])
+        scores = sorted(scores, key=lambda x: x[0], reverse=not lower_is_better)
 
         # Write validation curve
-        with open(os.path.join(args.model_path, 'validation-loss.csv'), 'w') as fout:
-            fout.write('step,xent,checkpoint_path\n')
-            for xent, cp in xent_lst:
+        with open(os.path.join(args.model_path, 'validation-scores.csv'), 'w') as fout:
+            fout.write(f'step,{metric},checkpoint_path\n')
+            for score, cp in scores:
                 step = step_from_cp(cp)
-                fout.write(f'{step},{xent},{cp}\n')
-
-        test_k = 5
-        logger.info(f'Testing {test_k} checkpoints with lowest validation loss.')
-        logger.info('PPL %s' % str(xent_lst))
-        for xent, cp in xent_lst[:test_k]:
-            step = step_from_cp(cp)
-            test_ext(args, device_id, cp, step)
+                fout.write(f'{step},{score},{cp}\n')
 
         # Write step of best checkpoint
         with open(os.path.join(args.model_path, 'model_step_best.txt'), 'w') as fout:
-            fout.write(f'{step_from_cp(xent_lst[0][1])}\n')
+            fout.write(f'{step_from_cp(scores[0][1])}\n')
+
+        test_k = 5
+        logger.info(f'Testing {test_k} checkpoints with lowest validation loss.')
+        logger.info('PPL %s' % str(scores))
+        for score, cp in scores[:test_k]:
+            step = step_from_cp(cp)
+            test_ext(args, device_id, cp, step)
     else:
         while (True):
             cp_files = sorted(glob.glob(os.path.join(args.model_path, 'model_step_*.pt')))
@@ -243,7 +262,7 @@ def test_ext(args, device_id, pt, step, split_name='test'):
             is_test=True
         )
         trainer = build_trainer(args, device_id, model, None)
-        trainer.test(test_iter, step)
+        return trainer.test(test_iter, step)
 
 def train_ext(args, device_id):
     if (args.world_size > 1):

@@ -349,6 +349,7 @@ class Trainer(object):
         if (step != -1 and self.args.report_rouge):
             rouges = test_rouge(self.args.temp_dir, can_path, gold_path)
             logger.info('Rouges at step %d \n%s' % (step, rouge_results_to_str(rouges)))
+            return rouges
 
 
     def _gradient_accumulation(self, true_batchs, normalization, total_stats,
