@@ -149,7 +149,6 @@ def validate_abs(args, device_id):
             else:
                 rouges = test_abs(args, device_id, cp, step, split_name='valid')
                 scores.append((rouges[metric], cp))
-                print(rouges)
             if lower_is_better:
                 max_step = scores.index(min(scores))
             else:
